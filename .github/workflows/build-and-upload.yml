@@ -148,7 +148,7 @@ jobs:
         if: steps.cached_binaries.outputs.cache-hit == false
         with:
           file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: .
+          context: ./cmd/amazon-cloudwatch-agent-target-allocator
           push: true
           platforms: linux/amd64
           tags: |
@@ -163,7 +163,7 @@ jobs:
         if: steps.cached_binaries.outputs.cache-hit == false
         with:
           file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: .
+          context: ./cmd/amazon-cloudwatch-agent-target-allocator
           push: true
           platforms: linux/arm64
           tags: |
@@ -216,12 +216,12 @@ jobs:
           go mod download
           go mod tidy
           # Create bin directory
-          mkdir -p bin
-          # Build for both architectures with correct names
-          GOARCH=amd64 go build -o bin/targetallocator_amd64 ./cmd/amazon-cloudwatch-agent-target-allocator
-          GOARCH=arm64 go build -o bin/targetallocator_arm64 ./cmd/amazon-cloudwatch-agent-target-allocator
-          # List files to verify
-          ls -la bin/
+          mkdir -p cmd/amazon-cloudwatch-agent-target-allocator/bin
+          # Build for each architecture
+          GOARCH=amd64 make targetallocator
+          GOARCH=arm64 make targetallocator
+          # Verify binaries exist
+          ls -la cmd/amazon-cloudwatch-agent-target-allocator/bin/
 
       - name: Build Cloudwatch Agent Target Allocator Image and push to ECR
         uses: docker/build-push-action@v4
