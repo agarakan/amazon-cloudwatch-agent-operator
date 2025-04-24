@@ -143,35 +143,35 @@ jobs:
           outputs: type=image,push=true
           provenance: false
 
-      - name: Build Target Allocator AMD64 Image
-        uses: docker/build-push-action@v4
-        if: steps.cached_binaries.outputs.cache-hit == false
-        with:
-          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: ./cmd/amazon-cloudwatch-agent-target-allocator
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.target-sha }}-amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
-
-      - name: Build Target Allocator ARM64 Image
-        uses: docker/build-push-action@v4
-        if: steps.cached_binaries.outputs.cache-hit == false
-        with:
-          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: ./cmd/amazon-cloudwatch-agent-target-allocator
-          push: true
-          platforms: linux/arm64
-          tags: |
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.target-sha }}-arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
+#      - name: Build Target Allocator AMD64 Image
+#        uses: docker/build-push-action@v4
+#        if: steps.cached_binaries.outputs.cache-hit == false
+#        with:
+#          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
+#          context: ./cmd/amazon-cloudwatch-agent-target-allocator
+#          push: true
+#          platforms: linux/amd64
+#          tags: |
+#            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64
+#            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.target-sha }}-amd64
+#          cache-from: type=gha
+#          cache-to: type=gha,mode=max
+#          provenance: false
+#
+#      - name: Build Target Allocator ARM64 Image
+#        uses: docker/build-push-action@v4
+#        if: steps.cached_binaries.outputs.cache-hit == false
+#        with:
+#          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
+#          context: ./cmd/amazon-cloudwatch-agent-target-allocator
+#          push: true
+#          platforms: linux/arm64
+#          tags: |
+#            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
+#            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.target-sha }}-arm64
+#          cache-from: type=gha
+#          cache-to: type=gha,mode=max
+#          provenance: false
 
   MakeTABinary:
     name: 'MakeTargetAllocatorImage'
