@@ -289,7 +289,7 @@ jobs:
   
 
   CreateManifest:
-#    needs: MakeBinary
+    needs: MakeBinary
     runs-on: ubuntu-latest
     permissions:
       id-token: write
