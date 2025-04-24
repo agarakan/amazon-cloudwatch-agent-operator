@@ -288,7 +288,7 @@ jobs:
   
 
   CreateManifest:
-    needs: MakeBinary
+#    needs: MakeBinary
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials
