@@ -97,7 +97,6 @@ jobs:
           platforms: linux/amd64
           tags: |
             ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64
-            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.target-sha }}-amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -125,7 +124,6 @@ jobs:
           platforms: linux/arm64
           tags: |
             ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
-            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.target-sha }}-arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -143,7 +141,9 @@ jobs:
           outputs: type=image,push=true
           provenance: false
 
-#      - name: Build Target Allocator AMD64 Image
+    
+
+    #      - name: Build Target Allocator AMD64 Image
 #        uses: docker/build-push-action@v4
 #        if: steps.cached_binaries.outputs.cache-hit == false
 #        with:
@@ -323,7 +323,56 @@ jobs:
             --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
           docker manifest push ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}
 
-          docker manifest create ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }} \
-            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64 \
-            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
-          docker manifest push ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}
+#          docker manifest create ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }} \
+#            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64 \
+#            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
+#          docker manifest push ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}
+#
+  CleanupECR:
+    needs: [CreateManifest]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ env.AWS_ASSUME_ROLE }}
+          aws-region: ${{inputs.region}}
+
+      - name: Clean up operator images
+        run: |
+          echo "Cleaning up AMD64 images for operator..."
+          aws ecr batch-delete-image \
+            --repository-name cwagent-operator-pre-release \
+            --region us-west-2 \
+            --image-ids $(aws ecr list-images \
+              --repository-name cwagent-operator-pre-release \
+              --region us-west-2 \
+              --query 'imageIds[?contains(imageTag, `-amd64`) && !contains(imageTag, `staging`)].{imageTag: imageTag}' \
+              --output json | jq -c '.[]')
+
+      - name: Clean up operator images
+        run: |
+          echo "Cleaning up ARM64 images for operator..."
+          aws ecr batch-delete-image \
+            --repository-name cwagent-operator-pre-release \
+            --region us-west-2 \
+            --image-ids $(aws ecr list-images \
+              --repository-name cwagent-operator-pre-release \
+              --region us-west-2 \
+              --query 'imageIds[?contains(imageTag, `-arm64`) && !contains(imageTag, `staging`)].{imageTag: imageTag}' \
+              --output json | jq -c '.[]')
+
+#      - name: Clean up target allocator images
+#        run: |
+#          echo "Cleaning up ARM64 images for target allocator..."
+#          aws ecr batch-delete-image \
+#            --repository-name cwagent-target-allocator-pre-release \
+#            --region us-west-2 \
+#            --image-ids $(aws ecr list-images \
+#              --repository-name cwagent-target-allocator-pre-release \
+#              --region us-west-2 \
+#              --query 'imageIds[?contains(imageTag, `-arm64`) && !contains(imageTag, `staging`)].{imageTag: imageTag}' \
+#              --output json | jq -c '.[]')
