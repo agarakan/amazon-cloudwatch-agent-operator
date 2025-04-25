@@ -48,12 +48,18 @@ on:
 
 
 jobs:
+  GetBuildArgs:
+    uses: ./.github/workflows/operator-build-args.yml
+    with:
+      tag: ${{ inputs.tag }}
   MakeBinary:
+    needs: GetBuildArgs
     name: 'MakeContainerImage'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -87,88 +93,36 @@ jobs:
         if: steps.cached_binaries.outputs.cache-hit == false
         uses: docker/setup-qemu-action@v1
 
-#      - name: Build Cloudwatch Agent Operator AMD64 Image
-#        uses: docker/build-push-action@v4
-#        if: steps.cached_binaries.outputs.cache-hit == false
-#        with:
-#          file: ./Dockerfile
-#          context: .
-#          push: true
-#          platforms: linux/amd64
-#          tags: |
-#            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64
-#          cache-from: type=gha
-#          cache-to: type=gha,mode=max
-#          build-args: |
-#            VERSION_PKG=${{ env.VERSION_PKG }}
-#            VERSION=${{ inputs.tag }}
-#            VERSION_DATE=${{ env.VERSION_DATE }}
-#            AGENT_VERSION=${{ env.AGENT_VERSION }}
-#            AUTO_INSTRUMENTATION_JAVA_VERSION=${{ env.AUTO_INSTRUMENTATION_JAVA_VERSION }}
-#            AUTO_INSTRUMENTATION_PYTHON_VERSION=${{ env.AUTO_INSTRUMENTATION_PYTHON_VERSION }}
-#            AUTO_INSTRUMENTATION_DOTNET_VERSION=${{ env.AUTO_INSTRUMENTATION_DOTNET_VERSION }}
-#            AUTO_INSTRUMENTATION_NODEJS_VERSION=${{ env.AUTO_INSTRUMENTATION_NODEJS_VERSION }}
-#            DCMG_EXPORTER_VERSION=${{ env.DCMG_EXPORTER_VERSION }}
-#            NEURON_MONITOR_VERSION=${{ env.NEURON_MONITOR_VERSION }}
-#            TARGET_ALLOCATOR_VERSION=${{ env.TARGET_ALLOCATOR_VERSION }}
-#          outputs: type=image,push=true
-#          provenance: false
-#
-#      - name: Build Cloudwatch Agent Operator ARM64 Image
-#        uses: docker/build-push-action@v4
-#        if: steps.cached_binaries.outputs.cache-hit == false
-#        with:
-#          file: ./Dockerfile
-#          context: .
-#          push: true
-#          platforms: linux/arm64
-#          tags: |
-#            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
-#          cache-from: type=gha
-#          cache-to: type=gha,mode=max
-#          build-args: |
-#            VERSION_PKG=${{ env.VERSION_PKG }}
-#            VERSION=${{ inputs.tag }}
-#            VERSION_DATE=${{ env.VERSION_DATE }}
-#            AGENT_VERSION=${{ env.AGENT_VERSION }}
-#            AUTO_INSTRUMENTATION_JAVA_VERSION=${{ env.AUTO_INSTRUMENTATION_JAVA_VERSION }}
-#            AUTO_INSTRUMENTATION_PYTHON_VERSION=${{ env.AUTO_INSTRUMENTATION_PYTHON_VERSION }}
-#            AUTO_INSTRUMENTATION_DOTNET_VERSION=${{ env.AUTO_INSTRUMENTATION_DOTNET_VERSION }}
-#            AUTO_INSTRUMENTATION_NODEJS_VERSION=${{ env.AUTO_INSTRUMENTATION_NODEJS_VERSION }}
-#            DCMG_EXPORTER_VERSION=${{ env.DCMG_EXPORTER_VERSION }}
-#            NEURON_MONITOR_VERSION=${{ env.NEURON_MONITOR_VERSION }}
-#            TARGET_ALLOCATOR_VERSION=${{ env.TARGET_ALLOCATOR_VERSION }}
-#          outputs: type=image,push=true
-#          provenance: false
-#
-#
-
-      - name: Build Target Allocator AMD64 Image
+      - name: Build Cloudwatch Agent Operator AMD64 Image
         uses: docker/build-push-action@v4
         if: steps.cached_binaries.outputs.cache-hit == false
         with:
-          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: ./cmd/amazon-cloudwatch-agent-target-allocator
+          file: ./Dockerfile
+          context: .
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64
+            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: ${{ needs.GetBuildArgs.outputs.build_args }}
+          outputs: type=image,push=true
           provenance: false
 
-      - name: Build Target Allocator ARM64 Image
+      - name: Build Cloudwatch Agent Operator ARM64 Image
         uses: docker/build-push-action@v4
         if: steps.cached_binaries.outputs.cache-hit == false
         with:
-          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
-          context: ./cmd/amazon-cloudwatch-agent-target-allocator
+          file: ./Dockerfile
+          context: .
           push: true
           platforms: linux/arm64
           tags: |
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
+            ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: ${{ needs.GetBuildArgs.outputs.build_args }}
+          outputs: type=image,push=true
           provenance: false
 
   MakeTABinary:
@@ -213,25 +167,38 @@ jobs:
         run: |
           go mod download
           go mod tidy
-          # Create bin directory
           mkdir -p cmd/amazon-cloudwatch-agent-target-allocator/bin
-          # Build for each architecture
           GOARCH=amd64 make targetallocator
           GOARCH=arm64 make targetallocator
-          # Verify binaries exist
           ls -la cmd/amazon-cloudwatch-agent-target-allocator/bin/
 
-      - name: Build Cloudwatch Agent Target Allocator Image and push to ECR
+      - name: Build Target Allocator AMD64 Image
         uses: docker/build-push-action@v4
         if: steps.cached_binaries.outputs.cache-hit == false
         with:
           file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
           context: ./cmd/amazon-cloudwatch-agent-target-allocator
           push: true
+          platforms: linux/amd64
           tags: |
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}
-            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.target-sha }}
-          platforms: linux/amd64, linux/arm64
+            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Build Target Allocator ARM64 Image
+        if: steps.cached_binaries.outputs.cache-hit == false
+        uses: docker/build-push-action@v4
+        with:
+          file: ./cmd/amazon-cloudwatch-agent-target-allocator/Dockerfile
+          context: ./cmd/amazon-cloudwatch-agent-target-allocator
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
 
   bypass-info:
     if: ${{ inputs.e2e-test-bypass-link != '' || inputs.e2e-test-bypass-approver != '' }}
@@ -284,10 +251,9 @@ jobs:
           docker buildx imagetools create \
           -t ${{ env.ECR_OPERATOR_RELEASE_IMAGE }} \
           ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}
-  
 
   CreateManifest:
-    needs: MakeBinary
+    needs: [ MakeBinary, MakeTABinary ]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -316,13 +282,23 @@ jobs:
 
       - name: Create manifests
         run: |
-
           docker manifest create ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }} \
-            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64 \
-            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
+            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64 \
+            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
           docker manifest push ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}
-#
-#          docker manifest create ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }} \
-#            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-amd64 \
-#            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-arm64
-#          docker manifest push ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}
+          
+          docker manifest create ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ github.sha }} \
+            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64 \
+            --amend ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
+          docker manifest push ${{ env.ECR_TARGET_ALLOCATOR_STAGING_REPO }}:${{ github.sha }}
+
+
+          docker manifest create ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }} \
+            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64 \
+            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
+          docker manifest push ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}
+          
+          docker manifest create ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ github.sha }} \
+            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-amd64 \
+            --amend ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ inputs.tag }}-linux-arm64
+          docker manifest push ${{ env.ECR_OPERATOR_STAGING_REPO }}:${{ github.sha }}
